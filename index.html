@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Complaint Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        /* --- Professional Light Theming --- */
+        .professional-bg {
+            background-color: #f0f2f5;
+            position: relative;
+            overflow: hidden;
+        }
+        .professional-bg::before, .professional-bg::after {
+            content: '';
+            position: absolute;
+            width: 500px;
+            height: 500px;
+            border-radius: 50%;
+            filter: blur(150px);
+            z-index: 0;
+        }
+        .professional-bg::before {
+            background: rgba(100, 181, 246, 0.2); /* Light Blue */
+            top: -150px;
+            left: -150px;
+            animation: drift 25s ease-in-out infinite alternate;
+        }
+        .professional-bg::after {
+            background: rgba(174, 213, 129, 0.15); /* Light Green */
+            bottom: -150px;
+            right: -150px;
+            animation: drift 35s ease-in-out infinite alternate-reverse;
+        }
+
+        @keyframes drift {
+            from { transform: translateX(0) translateY(0); }
+            to { transform: translateX(50px) translateY(100px); }
+        }
+
+        .frosted-glass {
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.8);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.1);
+        }
+
+        /* --- UI Element Styles --- */
+        .modal-backdrop { background-color: rgba(0,0,0,0.5); }
+        .modal { transition: opacity 0.3s ease, transform 0.3s ease; }
+        .status-badge { display: inline-block; padding: 0.25rem 0.75rem; border-radius: 9999px; font-weight: 500; font-size: 0.75rem; }
+        .status-pending { background-color: #FEF3C7; color: #92400E; }
+        .status-in-progress { background-color: #DBEAFE; color: #1E40AF; }
+        .status-resolved { background-color: #D1FAE5; color: #065F46; }
+    </style>
+</head>
+<body class="professional-bg">
+
+    <!-- Main Navigation Bar -->
+    <nav id="mainNavbar" class="fixed top-0 left-0 right-0 frosted-glass z-20 text-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center">
+                    <h1 class="text-2xl font-bold text-blue-700">Jb knowledge Park</h1>
+                </div>
+                <div id="navControls" class="hidden">
+                     <div class="flex items-center space-x-4">
+                        <h2 id="pageTitle" class="text-xl font-bold hidden sm:block"></h2>
+                        <button id="newComplaintBtn" onclick="openComplaintModal()" class="bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors hidden">+ New Complaint</button>
+                        <button onclick="handleLogout()" class="bg-gray-200 font-semibold py-2 px-5 rounded-lg hover:bg-gray-300 transition-colors">Logout</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div id="app" class="min-h-screen flex flex-col items-center justify-center p-4 pt-24 text-gray-800 w-full">
+
+        <!-- AUTHENTICATION CONTAINER -->
+        <div id="authContainer" class="w-full max-w-sm">
+            <!-- Login View -->
+            <div id="loginView">
+                <div class="frosted-glass rounded-3xl p-8">
+                    <div class="text-center mb-8">
+                        <h1 class="text-3xl font-bold mb-2">Welcome Back</h1>
+                        <p class="text-gray-500">Please enter your credentials.</p>
+                    </div>
+                    <form id="loginForm">
+                        <div class="space-y-6">
+                            <input id="loginUsername" type="text" placeholder="Username" required class="w-full px-4 py-3 bg-white/50 placeholder-gray-500 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <input id="loginPassword" type="password" placeholder="Password" required class="w-full px-4 py-3 bg-white/50 placeholder-gray-500 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <p id="loginError" class="text-red-500 text-sm text-center hidden">Invalid username or password.</p>
+                            <button type="submit" class="w-full bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors duration-300 shadow-lg">Login</button>
+                        </div>
+                    </form>
+                    <p class="text-center text-sm text-gray-500 mt-6">
+                        Don't have an account? <button onclick="toggleToRegister()" class="font-semibold text-blue-600 hover:underline">Register</button>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Registration View -->
+            <div id="registerView" class="hidden">
+                 <div class="frosted-glass rounded-3xl p-8">
+                    <div class="text-center mb-8">
+                        <h1 class="text-3xl font-bold mb-2">Create Account</h1>
+                        <p class="text-gray-500">Join the platform today.</p>
+                    </div>
+                    <form id="registerForm">
+                        <div class="space-y-6">
+                            <input id="registerUsername" type="text" placeholder="Choose a Username" required class="w-full px-4 py-3 bg-white/50 placeholder-gray-500 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <input id="registerPassword" type="password" placeholder="Choose a Password" required class="w-full px-4 py-3 bg-white/50 placeholder-gray-500 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                            <p id="registerError" class="text-red-500 text-sm text-center hidden"></p>
+                            <button type="submit" class="w-full bg-green-600 text-white font-semibold py-3 px-4 rounded-lg hover:bg-green-700 transition-colors duration-300 shadow-lg">Create Account</button>
+                        </div>
+                    </form>
+                    <p class="text-center text-sm text-gray-500 mt-6">
+                        Already have an account? <button onclick="toggleToLogin()" class="font-semibold text-blue-600 hover:underline">Login</button>
+                    </p>
+                </div>
+            </div>
+            <p class="text-center text-gray-500 text-sm mt-6 opacity-70">Project by Hemant Dubey & Chirag Soni</p>
+        </div>
+        
+        <!-- User View -->
+        <div id="userView" class="hidden w-full max-w-4xl">
+            <div id="userComplaints" class="space-y-4"></div>
+        </div>
+
+        <!-- Admin View -->
+        <div id="adminView" class="hidden w-full max-w-6xl">
+            <div id="adminComplaints" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"></div>
+        </div>
+    </div>
+
+    <!-- New Complaint Modal -->
+    <div id="complaintModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+        <div id="modalContent" class="frosted-glass rounded-3xl w-full max-w-md p-8 transform scale-95 opacity-0 modal">
+            <h2 class="text-2xl font-bold mb-6">Register New Complaint</h2>
+            <form id="complaintForm">
+                <div class="mb-4">
+                    <label for="category" class="block text-sm font-medium text-gray-700 mb-2">Category</label>
+                    <select id="category" name="category" required class="w-full px-3 py-2 bg-white/50 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <option value="Electricity">Electricity</option> <option value="Water">Water Supply</option>
+                        <option value="Maintenance">Maintenance</option> <option value="Internet">Internet/Wi-Fi</option>
+                        <option value="Security">Security</option> <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="mb-6">
+                    <label for="description" class="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                    <textarea id="description" name="description" rows="4" required class="w-full px-3 py-2 bg-white/50 placeholder-gray-500 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Please provide details..."></textarea>
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" onclick="closeComplaintModal()" class="bg-gray-200 font-semibold py-2 px-5 rounded-lg hover:bg-gray-300 transition-colors">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white font-semibold py-2 px-5 rounded-lg hover:bg-blue-700 transition-colors">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // --- DOM Elements ---
+        const authContainer = document.getElementById('authContainer');
+        const loginView = document.getElementById('loginView');
+        const registerView = document.getElementById('registerView');
+        const userView = document.getElementById('userView');
+        const adminView = document.getElementById('adminView');
+        const userComplaintsContainer = document.getElementById('userComplaints');
+        const adminComplaintsContainer = document.getElementById('adminComplaints');
+        const complaintModal = document.getElementById('complaintModal');
+        const modalContent = document.getElementById('modalContent');
+        const complaintForm = document.getElementById('complaintForm');
+        const loginForm = document.getElementById('loginForm');
+        const registerForm = document.getElementById('registerForm');
+        const loginError = document.getElementById('loginError');
+        const registerError = document.getElementById('registerError');
+        const navControls = document.getElementById('navControls');
+        const pageTitle = document.getElementById('pageTitle');
+        const newComplaintBtn = document.getElementById('newComplaintBtn');
+
+        // --- Application State ---
+        let complaints = [];
+        let users = [];
+        let currentUser = null;
+        let nextId = 1;
+        
+        // --- Data Persistence ---
+        function saveToStorage() {
+            localStorage.setItem('complaintSystem_users', JSON.stringify(users));
+            localStorage.setItem('complaintSystem_complaints', JSON.stringify(complaints));
+            localStorage.setItem('complaintSystem_nextId', nextId);
+        }
+        function loadFromStorage() {
+            const storedUsers = localStorage.getItem('complaintSystem_users');
+            if (storedUsers) { users = JSON.parse(storedUsers); } 
+            else { users = [{ username: 'admin', password: 'password' }]; saveToStorage(); }
+            const storedComplaints = localStorage.getItem('complaintSystem_complaints');
+            complaints = storedComplaints ? JSON.parse(storedComplaints) : [];
+            const storedNextId = localStorage.getItem('complaintSystem_nextId');
+            nextId = storedNextId ? parseInt(storedNextId) : complaints.length + 1;
+        }
+
+        // --- View Toggling ---
+        function toggleToRegister() {
+            loginView.classList.add('hidden');
+            registerView.classList.remove('hidden');
+            loginError.classList.add('hidden');
+        }
+        function toggleToLogin() {
+            registerView.classList.add('hidden');
+            loginView.classList.remove('hidden');
+            registerError.classList.add('hidden');
+        }
+        
+        // --- Render Functions ---
+        function getStatusClass(status) {
+            switch (status) {
+                case 'Pending': return 'status-pending';
+                case 'In-Progress': return 'status-in-progress';
+                case 'Resolved': return 'status-resolved';
+                default: return 'bg-gray-200';
+            }
+        }
+        function renderUserComplaints() {
+            if (!currentUser) return;
+            const currentUserComplaints = complaints.filter(c => c.user === currentUser.username).sort((a, b) => b.id - a.id);
+            if (currentUserComplaints.length === 0) {
+                 userComplaintsContainer.innerHTML = `<div class="frosted-glass rounded-3xl text-center p-12"><p class="text-gray-500">You have not submitted any complaints yet.</p></div>`;
+                 return;
+            }
+            userComplaintsContainer.innerHTML = currentUserComplaints.map(c => `
+                <div class="frosted-glass rounded-3xl p-6 flex justify-between items-center">
+                    <div>
+                        <div class="flex items-center mb-2"><span class="font-bold text-blue-600 mr-3">${c.category}</span><span class="text-xs text-gray-500">ID: C${String(c.id).padStart(4, '0')}</span></div>
+                        <p class="text-gray-700 mb-2">${c.description}</p><p class="text-sm text-gray-500">Submitted on: ${c.date}</p>
+                    </div>
+                    <div><span class="status-badge ${getStatusClass(c.status)}">${c.status}</span></div>
+                </div>`).join('');
+        }
+        function renderAdminComplaints() {
+            const sortedComplaints = [...complaints].sort((a, b) => b.id - a.id);
+            if (sortedComplaints.length === 0) {
+                adminComplaintsContainer.innerHTML = `<div class="frosted-glass rounded-3xl text-center p-12 col-span-full"><p class="text-gray-500">No complaints have been submitted yet.</p></div>`;
+                return;
+            }
+            adminComplaintsContainer.innerHTML = sortedComplaints.map(c => `
+                <div class="frosted-glass rounded-3xl p-6 flex flex-col justify-between">
+                    <div>
+                        <div class="flex justify-between items-start mb-2"><span class="font-bold text-lg text-blue-600">${c.category}</span><span class="status-badge ${getStatusClass(c.status)}">${c.status}</span></div>
+                        <p class="text-gray-700 mb-3">${c.description}</p>
+                    </div>
+                    <div>
+                        <div class="text-sm text-gray-500 mb-4"><p>ID: C${String(c.id).padStart(4, '0')}</p><p>User: ${c.user}</p><p>Date: ${c.date}</p></div>
+                        <div class="flex items-center justify-between bg-black/5 p-2 rounded-lg">
+                            <label for="status-select-${c.id}" class="text-sm font-medium mr-2 text-gray-600">Update Status:</label>
+                            <select id="status-select-${c.id}" onchange="updateStatus(${c.id}, this.value)" class="bg-white/50 border border-gray-200 rounded-md shadow-sm text-sm">
+                                <option value="Pending" ${c.status === 'Pending' ? 'selected' : ''}>Pending</option>
+                                <option value="In-Progress" ${c.status === 'In-Progress' ? 'selected' : ''}>In-Progress</option>
+                                <option value="Resolved" ${c.status === 'Resolved' ? 'selected' : ''}>Resolved</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>`).join('');
+        }
+        function renderAll() { renderUserComplaints(); renderAdminComplaints(); }
+
+        // --- Modal ---
+        function openComplaintModal() {
+            complaintModal.classList.remove('hidden');
+            setTimeout(() => { modalContent.classList.remove('scale-95', 'opacity-0'); modalContent.classList.add('scale-100', 'opacity-100'); }, 10);
+        }
+        function closeComplaintModal() {
+             modalContent.classList.remove('scale-100', 'opacity-100'); modalContent.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => { complaintModal.classList.add('hidden'); complaintForm.reset(); }, 300);
+        }
+        
+        // --- Authentication & Event Listeners ---
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+
+            if (username === 'admin' && password === 'password') {
+                currentUser = { username: 'admin' };
+                authContainer.classList.add('hidden');
+                adminView.classList.remove('hidden');
+                loginError.classList.add('hidden');
+                navControls.classList.remove('hidden');
+                pageTitle.textContent = 'Admin Dashboard';
+                newComplaintBtn.classList.add('hidden');
+                renderAll();
+                return;
+            }
+            const user = users.find(u => u.username === username && u.password === password);
+            if (user) {
+                currentUser = user;
+                authContainer.classList.add('hidden');
+                userView.classList.remove('hidden');
+                loginError.classList.add('hidden');
+                navControls.classList.remove('hidden');
+                pageTitle.textContent = 'My Complaints';
+                newComplaintBtn.classList.remove('hidden');
+                renderAll();
+            } else { loginError.classList.remove('hidden'); }
+        });
+
+        registerForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('registerUsername').value;
+            const password = document.getElementById('registerPassword').value;
+            if (users.some(u => u.username === username)) {
+                registerError.textContent = 'Username already taken.';
+                registerError.classList.remove('hidden');
+                return;
+            }
+            users.push({ username, password });
+            saveToStorage();
+            alert('Registration successful! Please login.');
+            toggleToLogin();
+            registerForm.reset();
+        });
+        
+        complaintForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const newComplaint = { id: nextId++, user: currentUser.username, category: e.target.category.value, description: e.target.description.value, status: 'Pending', date: new Date().toISOString().split('T')[0] };
+            complaints.push(newComplaint);
+            saveToStorage(); renderAll(); closeComplaintModal();
+        });
+
+        function handleLogout() {
+            currentUser = null;
+            userView.classList.add('hidden');
+            adminView.classList.add('hidden');
+            authContainer.classList.remove('hidden');
+            navControls.classList.add('hidden');
+            pageTitle.textContent = '';
+            loginForm.reset();
+        }
+
+        function updateStatus(id, newStatus) {
+            const complaint = complaints.find(c => c.id === id);
+            if (complaint) {
+                complaint.status = newStatus;
+                saveToStorage(); renderAll();
+            }
+        }
+
+        // --- Initial Load ---
+        window.onload = () => { loadFromStorage(); };
+    </script>
+</body>
+</html>
